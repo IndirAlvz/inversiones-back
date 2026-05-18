@@ -1,0 +1,7 @@
+version: '3.8'
+services:
+  # Define aquí tus servicios (ejemplo: identity-service, postgres, etc.)
+  # Sustituye o elimina según tus necesidades
+  example-service:
+    image: hello-world
+    restart: unless-stopped

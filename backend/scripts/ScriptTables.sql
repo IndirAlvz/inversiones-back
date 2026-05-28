@@ -1,2 +1,2 @@
 -- Script de ejemplo para crear tablas
--- Reemplaza con tus scripts reales
+

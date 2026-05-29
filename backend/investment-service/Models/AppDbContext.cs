@@ -8,5 +8,6 @@ namespace investment_service
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         public DbSet<SecUsuario> SecUsuarios { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
     }
 }

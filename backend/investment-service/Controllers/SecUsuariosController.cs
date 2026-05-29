@@ -12,11 +12,13 @@ namespace investment_service.Controllers
     {
         private readonly Services.SecUsuarioService _service;
         private readonly Services.JwtService _jwtService;
+        private readonly Services.RefreshTokenService _refreshTokenService;
 
-        public SecUsuariosController(Services.SecUsuarioService service, Services.JwtService jwtService)
+        public SecUsuariosController(Services.SecUsuarioService service, Services.JwtService jwtService, Services.RefreshTokenService refreshTokenService)
         {
             _service = service;
             _jwtService = jwtService;
+            _refreshTokenService = refreshTokenService;
         }
 
         [HttpGet]
@@ -96,6 +98,65 @@ namespace investment_service.Controllers
                 Success = true,
                 Message = "Usuario eliminado correctamente",
                 Data = null
+            });
+        }
+
+        [HttpPost("login")]
+        public async Task<ActionResult<ApiResponse<object>>> Login([FromBody] Dtos.LoginDto loginDto)
+        {
+            var usuario = await _service.ValidateLoginAsync(loginDto.nIdUsuario, loginDto.cContrasena);
+            if (usuario == null)
+            {
+                return Unauthorized(new Dtos.ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Credenciales inválidas",
+                    Data = null
+                });
+            }
+            var token = _jwtService.GenerateToken(usuario);
+            var refreshToken = await _refreshTokenService.GenerateRefreshTokenAsync(usuario.nIdUsuario);
+            return Ok(new Dtos.ApiResponse<object>
+            {
+                Success = true,
+                Message = "Login exitoso",
+                Data = new { Token = token, RefreshToken = refreshToken.Token, Usuario = usuario }
+            });
+        }
+
+        [HttpPost("refresh")]
+        public async Task<ActionResult<ApiResponse<object>>> Refresh([FromBody] string refreshToken)
+        {
+            var tokenEntity = await _refreshTokenService.ValidateRefreshTokenAsync(refreshToken);
+            if (tokenEntity == null)
+            {
+                return Unauthorized(new Dtos.ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Refresh token inválido o expirado",
+                    Data = null
+                });
+            }
+            // Obtener usuario
+            var usuario = await _service.GetByIdAsync(tokenEntity.UserId);
+            if (usuario == null)
+            {
+                return Unauthorized(new Dtos.ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Usuario no encontrado",
+                    Data = null
+                });
+            }
+            var newToken = _jwtService.GenerateToken(usuario);
+            var newRefreshToken = await _refreshTokenService.GenerateRefreshTokenAsync(tokenEntity.UserId);
+            // Revocar el refresh token anterior
+            await _refreshTokenService.RevokeRefreshTokenAsync(refreshToken);
+            return Ok(new Dtos.ApiResponse<object>
+            {
+                Success = true,
+                Message = "Token renovado",
+                Data = new { Token = newToken, RefreshToken = newRefreshToken.Token }
             });
         }
     // ...

@@ -15,6 +15,16 @@ namespace investment_service.Services
             _repository = repository;
         }
 
+        public async Task<SecUsuarioDto?> ValidateLoginAsync(int nIdUsuario, string cContrasena)
+        {
+            var usuario = await _repository.GetByIdAsync(nIdUsuario);
+            if (usuario == null)
+                return null;
+            if (!PasswordHasher.VerifyPassword(cContrasena, usuario.cContrasena))
+                return null;
+            return ToDto(usuario);
+        }
+
 
         private SecUsuarioDto ToDto(SecUsuario usuario)
         {
